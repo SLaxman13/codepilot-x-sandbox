@@ -13,11 +13,13 @@ jobs:
 
       - name: Write Patch File
         run: |
-          echo "${{ github.event.client_payload.patch }}" > changes.patch
+          cat << 'EOF' > changes.patch
+          ${{ github.event.client_payload.patch }}
+          EOF
 
       - name: Apply AI Generated Patch
         run: |
-          git apply changes.patch
+          git apply --reject --whitespace=fix changes.patch || git apply --3way changes.patch
 
       - name: Set up Python Environment
         uses: actions/setup-python@v5
@@ -32,7 +34,8 @@ jobs:
           pytest --json-report --json-report-file=report.json
 
       - name: Post Results back to Render
+        if: always()
         run: |
           curl -X POST "${{ github.event.client_payload.callback_url }}" \
             -H "Content-Type: application/json" \
-            -d @report.json
+            -d @report.json || true
