@@ -1,0 +1,38 @@
+name: CodePilot-X Ephemeral Sandbox
+
+on:
+  repository_dispatch:
+    types: [run-patch-test]
+
+jobs:
+  test-patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Write Patch File
+        run: |
+          echo "${{ github.event.client_payload.patch }}" > changes.patch
+
+      - name: Apply AI Generated Patch
+        run: |
+          git apply changes.patch
+
+      - name: Set up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Test Suite
+        id: run_tests
+        continue-on-error: true
+        run: |
+          pip install pytest pytest-json-report
+          pytest --json-report --json-report-file=report.json
+
+      - name: Post Results back to Render
+        run: |
+          curl -X POST "${{ github.event.client_payload.callback_url }}" \
+            -H "Content-Type: application/json" \
+            -d @report.json
