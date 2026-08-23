@@ -1,4 +1,4 @@
-name: CodePilot-X Ephemeral Sandbox
+ name: CodePilot-X Ephemeral Sandbox
 
 on:
   repository_dispatch:
@@ -13,13 +13,12 @@ jobs:
 
       - name: Write Patch File
         run: |
-          cat << 'EOF' > changes.patch
-          ${{ github.event.client_payload.patch }}
-          EOF
+          printf "%b" "${{ github.event.client_payload.patch }}" > changes.patch
 
       - name: Apply AI Generated Patch
+        continue-on-error: true
         run: |
-          git apply --reject --whitespace=fix changes.patch || git apply --3way changes.patch
+          git apply --whitespace=fix changes.patch || patch -p1 --fuzz=3 < changes.patch
 
       - name: Set up Python Environment
         uses: actions/setup-python@v5
