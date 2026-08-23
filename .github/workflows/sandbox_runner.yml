@@ -1,10 +1,8 @@
-  name: CodePilot-X Ephemeral Sandbox
+name: CodePilot-X Ephemeral Sandbox
 
 on:
   repository_dispatch:
     types: [run-patch-test]
-  push:
-    branches: [ main ]
 
 jobs:
   test-patch:
@@ -15,12 +13,7 @@ jobs:
 
       - name: Write Patch File
         run: |
-          PATCH_CONTENT="${{ github.event.client_payload.patch }}"
-          if [ -z "$PATCH_CONTENT" ]; then
-            echo "No patch payload provided (Push Event)." > changes.patch
-          else
-            printf "%b" "$PATCH_CONTENT" > changes.patch
-          fi
+          printf "%b" "${{ github.event.client_payload.patch }}" > changes.patch
 
       - name: Apply AI Generated Patch
         continue-on-error: true
@@ -42,11 +35,6 @@ jobs:
       - name: Post Results back to Render
         if: always()
         run: |
-          CALLBACK_URL="${{ github.event.client_payload.callback_url }}"
-          if [ -n "$CALLBACK_URL" ]; then
-            curl -X POST "$CALLBACK_URL" \
-              -H "Content-Type: application/json" \
-              -d @report.json || true
-          else
-            echo "No callback URL specified. Skipping report upload."
-          fi
+          curl -X POST "${{ github.event.client_payload.callback_url }}" \
+            -H "Content-Type: application/json" \
+            -d @report.json || true
